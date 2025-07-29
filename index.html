@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spese Casa</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Spese Casa">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#3B82F6">
+    
+    <!-- React -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- XLSX per Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        }
+        .icon {
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+            stroke-width: 0;
+            stroke: currentColor;
+            fill: currentColor;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: #f3f4f6;">
+            <div style="text-align: center;">
+                <div style="font-size: 24px; color: #6b7280; margin-bottom: 16px;">Caricamento...</div>
+                <div style="width: 40px; height: 40px; border: 3px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+
+    <!-- SVG Icons -->
+    <svg style="display: none;">
+        <symbol id="icon-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </symbol>
+        <symbol id="icon-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+        </symbol>
+        <symbol id="icon-cloud-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m2 2 20 20M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/>
+        </symbol>
+        <symbol id="icon-loader" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+        </symbol>
+        <symbol id="icon-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+        </symbol>
+        <symbol id="icon-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </symbol>
+        <symbol id="icon-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+        </symbol>
+        <symbol id="icon-euro" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 8.5c-.88-1.18-2.24-1.97-3.8-1.97C7.33 6.53 5 8.86 5 11.73s2.33 5.2 5.2 5.2c1.56 0 2.92-.79 3.8-1.97M3 12h10"></path>
+        </symbol>
+        <symbol id="icon-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+        </symbol>
+        <symbol id="icon-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m20.59 13.41-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+        </symbol>
+        <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </symbol>
+        <symbol id="icon-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+        </symbol>
+        <symbol id="icon-chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+        </symbol>
+        <symbol id="icon-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+        </symbol>
+        <symbol id="icon-trending-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+            <polyline points="17 6 23 6 23 12"></polyline>
+        </symbol>
+        <symbol id="icon-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </symbol>
+        <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </symbol>
+    </svg>
+    
+    <script type="text/babel">
+        const { useState, useMemo, useEffect } = React;
+        const { createRoot } = ReactDOM;
+        
+        // Componente Icon
+        const Icon = ({ name, className = "" }) => {
+            return (
+                <svg className={`icon ${className}`}>
+                    <use href={`#icon-${name}`}></use>
+                </svg>
+            );
+        };
+
+        // Configurazione Firebase
+        const FIREBASE_CONFIG = {
+            apiKey: "AIzaSyCNetgY6YyVtZS9ntpSrJIJavvjwh11br4",
+            authDomain: "spesedicasa-c7c46.firebaseapp.com",
+            projectId: "spesedicasa-c7c46",
+            storageBucket: "spesedicasa-c7c46.firebasestorage.app",
+            messagingSenderId: "1096667747994",
+            appId: "1:1096667747994:web:645cfe90e609aa683f7123"
+        };
+
+        function ExpenseTracker() {
+            const [expenses, setExpenses] = useState([]);
+            const [payers, setPayers] = useState(['Mario', 'Anna']);
+            const [categories, setCategories] = useState(['Spesa', 'Bollette', 'Affitto', 'Trasporti', 'Salute']);
+            const [selectedCategories, setSelectedCategories] = useState(new Set());
+            
+            const [description, setDescription] = useState('');
+            const [notes, setNotes] = useState('');
+            const [amount, setAmount] = useState('');
+            const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+            const [selectedPayer, setSelectedPayer] = useState('');
+            const [selectedCategory, setSelectedCategory] = useState('');
+            const [newPayer, setNewPayer] = useState('');
+            const [newCategory, setNewCategory] = useState('');
+            const [showNewPayer, setShowNewPayer] = useState(false);
+            const [showNewCategory, setShowNewCategory] = useState(false);
+            const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+            
+            // Stati Firebase
+            const [isOnline, setIsOnline] = useState(false);
+            const [isSyncing, setIsSyncing] = useState(false);
+            const [syncError, setSyncError] = useState('');
+            const [db, setDb] = useState(null);
+
+            // Inizializza Firebase
+            useEffect(() => {
+                const initFirebase = async () => {
+                    try {
+                        if (!firebase.apps.length) {
+                            firebase.initializeApp(FIREBASE_CONFIG);
+                        }
+                        
+                        const firestore = firebase.firestore();
+                        
+                        // Prova ad abilitare la persistenza
+                        try {
+                            await firestore.enablePersistence();
+                        } catch (err) {
+                            console.log('Persistenza:', err.message);
+                        }
+                        
+                        setDb(firestore);
+                        setIsOnline(true);
+                        
+                        // Setup listeners
+                        setupListeners(firestore);
+                        
+                    } catch (error) {
+                        console.error('Errore Firebase:', error);
+                        setSyncError('Modalità offline');
+                    }
+                };
+                
+                initFirebase();
+            }, []);
+
+            const setupListeners = (firestore) => {
+                // Listener expenses
+                firestore.collection('expenses')
+                    .orderBy('date', 'desc')
+                    .onSnapshot(
+                        (snapshot) => {
+                            const data = [];
+                            snapshot.forEach((doc) => {
+                                data.push({ id: doc.id, ...doc.data() });
+                            });
+                            setExpenses(data);
+                            setIsSyncing(false);
+                        },
+                        (error) => {
+                            console.log('Expenses:', error.message);
+                            setIsSyncing(false);
+                        }
+                    );
+
+                // Listener payers
+                firestore.collection('settings').doc('payers').get()
+                    .then((doc) => {
+                        if (!doc.exists) {
+                            // Crea il documento
+                            firestore.collection('settings').doc('payers').set({
+                                list: ['Mario', 'Anna']
+                            });
+                        }
+                    });
+
+                firestore.collection('settings').doc('payers')
+                    .onSnapshot((doc) => {
+                        if (doc.exists && doc.data().list) {
+                            setPayers(doc.data().list);
+                        }
+                    });
+
+                // Listener categories  
+                firestore.collection('settings').doc('categories').get()
+                    .then((doc) => {
+                        if (!doc.exists) {
+                            // Crea il documento
+                            firestore.collection('settings').doc('categories').set({
+                                list: ['Spesa', 'Bollette', 'Affitto', 'Trasporti', 'Salute']
+                            });
+                        }
+                    });
+
+                firestore.collection('settings').doc('categories')
+                    .onSnapshot((doc) => {
+                        if (doc.exists && doc.data().list) {
+                            setCategories(doc.data().list);
+                        }
+                    });
+            };
+
+            const handleAddExpense = async () => {
+                if (!description || !amount || !selectedPayer || !selectedCategory) {
+                    alert('Compila tutti i campi');
+                    return;
+                }
+
+                const newExpense = {
+                    description,
+                    notes,
+                    amount: parseFloat(amount),
+                    date,
+                    payer: selectedPayer,
+                    category: selectedCategory,
+                    createdAt: new Date().toISOString()
+                };
+
+                if (db && isOnline) {
+                    setIsSyncing(true);
+                    try {
+                        await db.collection('expenses').add(newExpense);
+                    } catch (error) {
+                        console.error('Errore:', error);
+                        // Fallback locale
+                        setExpenses([...expenses, { id: Date.now(), ...newExpense }]);
+                    }
+                } else {
+                    setExpenses([...expenses, { id: Date.now(), ...newExpense }]);
+                }
+                
+                // Reset form
+                setDescription('');
+                setNotes('');
+                setAmount('');
+                setDate(new Date().toISOString().split('T')[0]);
+                setSelectedPayer(selectedPayer);
+                setSelectedCategory('');
+            };
+
+            const handleAddPayer = async () => {
+                if (newPayer && !payers.includes(newPayer)) {
+                    const newPayers = [...payers, newPayer];
+                    setPayers(newPayers);
+                    
+                    if (db && isOnline) {
+                        try {
+                            await db.collection('settings').doc('payers').set({ list: newPayers });
+                        } catch (error) {
+                            console.error('Errore:', error);
+                        }
+                    }
+                    
+                    setSelectedPayer(newPayer);
+                    setNewPayer('');
+                    setShowNewPayer(false);
+                }
+            };
+
+            const handleAddCategory = async () => {
+                if (newCategory && !categories.includes(newCategory)) {
+                    const newCategories = [...categories, newCategory];
+                    setCategories(newCategories);
+                    
+                    if (db && isOnline) {
+                        try {
+                            await db.collection('settings').doc('categories').set({ list: newCategories });
+                        } catch (error) {
+                            console.error('Errore:', error);
+                        }
+                    }
+                    
+                    setSelectedCategory(newCategory);
+                    setNewCategory('');
+                    setShowNewCategory(false);
+                }
+            };
+
+            const handleDeleteExpense = async (id) => {
+                if (db && isOnline) {
+                    setIsSyncing(true);
+                    try {
+                        await db.collection('expenses').doc(id).delete();
+                    } catch (error) {
+                        console.error('Errore:', error);
+                        setExpenses(expenses.filter(e => e.id !== id));
+                    }
+                } else {
+                    setExpenses(expenses.filter(e => e.id !== id));
+                }
+            };
+
+            const navigateMonth = (direction) => {
+                const currentDate = new Date(selectedMonth + '-01');
+                if (direction === 'prev') {
+                    currentDate.setMonth(currentDate.getMonth() - 1);
+                } else {
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                }
+                setSelectedMonth(currentDate.toISOString().slice(0, 7));
+            };
+
+            const goToCurrentMonth = () => {
+                setSelectedMonth(new Date().toISOString().slice(0, 7));
+            };
+
+            const toggleCategorySelection = (category) => {
+                const newSelected = new Set(selectedCategories);
+                if (newSelected.has(category)) {
+                    newSelected.delete(category);
+                } else {
+                    newSelected.add(category);
+                }
+                setSelectedCategories(newSelected);
+            };
+
+            // Calcoli
+            const totals = useMemo(() => {
+                const [selectedYear, selectedMonthNum] = selectedMonth.split('-').map(Number);
+                
+                const monthlyExpenses = expenses.filter(e => {
+                    const expenseDate = new Date(e.date);
+                    return expenseDate.getMonth() === selectedMonthNum - 1 && expenseDate.getFullYear() === selectedYear;
+                });
+
+                const totalByPayer = {};
+                const totalByCategory = {};
+                const monthlyTotalByPayer = {};
+                const monthlyTotalByCategory = {};
+                let monthlyTotal = 0;
+                let grandTotal = 0;
+
+                expenses.forEach(e => {
+                    grandTotal += e.amount;
+                    totalByPayer[e.payer] = (totalByPayer[e.payer] || 0) + e.amount;
+                    totalByCategory[e.category] = (totalByCategory[e.category] || 0) + e.amount;
+                });
+
+                monthlyExpenses.forEach(e => {
+                    monthlyTotal += e.amount;
+                    monthlyTotalByPayer[e.payer] = (monthlyTotalByPayer[e.payer] || 0) + e.amount;
+                    monthlyTotalByCategory[e.category] = (monthlyTotalByCategory[e.category] || 0) + e.amount;
+                });
+
+                let selectedCategoriesTotal = 0;
+                selectedCategories.forEach(category => {
+                    selectedCategoriesTotal += monthlyTotalByCategory[category] || 0;
+                });
+
+                return { 
+                    monthlyTotal, 
+                    grandTotal, 
+                    totalByPayer, 
+                    totalByCategory, 
+                    selectedCategoriesTotal, 
+                    monthlyTotalByPayer,
+                    monthlyTotalByCategory 
+                };
+            }, [expenses, selectedCategories, selectedMonth]);
+
+            const formatCurrency = (amount) => {
+                return new Intl.NumberFormat('it-IT', { 
+                    style: 'currency', 
+                    currency: 'EUR' 
+                }).format(amount);
+            };
+
+            const formatDate = (dateString) => {
+                const date = new Date(dateString);
+                return new Intl.DateTimeFormat('it-IT', { 
+                    day: 'numeric', 
+                    month: 'short' 
+                }).format(date);
+            };
+
+            const exportToExcel = () => {
+                const exportData = expenses.map(expense => ({
+                    'Data': expense.date,
+                    'Descrizione': expense.description,
+                    'Note': expense.notes || '',
+                    'Importo (€)': expense.amount,
+                    'Pagato da': expense.payer,
+                    'Categoria': expense.category
+                }));
+
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Spese");
+
+                XLSX.writeFile(wb, `Spese_Casa_${new Date().toISOString().split('T')[0]}.xlsx`);
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    <div className="max-w-6xl mx-auto p-4 sm:p-6">
+                        {/* Header */}
+                        <div className="mb-6 sm:mb-8">
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-3">
+                                    <Icon name="home" className="w-6 h-6 sm:w-8 sm:h-8 text-gray-700" />
+                                    <h1 className="text-2xl sm:text-3xl font-light text-gray-800">Spese di Casa</h1>
+                                    <div className="flex items-center gap-2">
+                                        {isSyncing ? (
+                                            <Icon name="loader" className="w-4 h-4 text-blue-500 animate-spin" />
+                                        ) : isOnline ? (
+                                            <Icon name="cloud" className="w-4 h-4 text-green-500" />
+                                        ) : (
+                                            <Icon name="cloud-off" className="w-4 h-4 text-gray-400" />
+                                        )}
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={exportToExcel}
+                                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition text-sm sm:text-base"
+                                >
+                                    <Icon name="download" className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Excel</span>
+                                </button>
+                            </div>
+                            <p className="text-gray-500 text-sm sm:text-base">Gestisci e monitora le spese condivise</p>
+                            {syncError && (
+                                <p className="text-red-500 text-sm mt-1">{syncError}</p>
+                            )}
+                        </div>
+
+                        {/* Stats Cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 sm:mb-8">
+                            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+                                <div className="flex items-center justify-between mb-2">
+                                    <Icon name="calendar" className="w-5 h-5 text-blue-500" />
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => navigateMonth('prev')}
+                                            className="p-1 hover:bg-gray-100 rounded transition"
+                                        >
+                                            <Icon name="chevron-left" className="w-4 h-4 text-gray-600" />
+                                        </button>
+                                        <input
+                                            type="month"
+                                            value={selectedMonth}
+                                            onChange={(e) => setSelectedMonth(e.target.value)}
+                                            className="text-xs sm:text-sm text-gray-700 bg-gray-50 px-2 py-1 rounded border border-gray-200 hover:border-gray-300 focus:border-blue-500 focus:outline-none cursor-pointer text-center transition"
+                                        />
+                                        <button
+                                            onClick={() => navigateMonth('next')}
+                                            className="p-1 hover:bg-gray-100 rounded transition"
+                                        >
+                                            <Icon name="chevron-right" className="w-4 h-4 text-gray-600" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="text-xl sm:text-2xl font-semibold text-gray-800">{formatCurrency(totals.monthlyTotal)}</p>
+                                <div className="flex items-center justify-between mt-1">
+                                    <p className="text-xs text-gray-500">
+                                        {new Date(selectedMonth + '-01').toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
+                                    </p>
+                                    {selectedMonth !== new Date().toISOString().slice(0, 7) && (
+                                        <button
+                                            onClick={goToCurrentMonth}
+                                            className="text-xs text-blue-500 hover:text-blue-600 transition"
+                                        >
+                                            Oggi
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+                                <div className="flex items-center justify-between mb-2">
+                                    <Icon name="trending-up" className="w-5 h-5 text-green-500" />
+                                    <span className="text-xs sm:text-sm text-gray-500">Totale</span>
+                                </div>
+                                <p className="text-xl sm:text-2xl font-semibold text-gray-800">{formatCurrency(totals.grandTotal)}</p>
+                            </div>
+                            
+                            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm sm:col-span-2 lg:col-span-1">
+                                <div className="flex items-center justify-between mb-2">
+                                    <Icon name="users" className="w-5 h-5 text-purple-500" />
+                                    <span className="text-xs sm:text-sm text-gray-500">
+                                        {new Date(selectedMonth + '-01').toLocaleDateString('it-IT', { month: 'short', year: 'numeric' })}
+                                    </span>
+                                </div>
+                                <div className="space-y-1">
+                                    {Object.keys(totals.monthlyTotalByPayer).length > 0 ? (
+                                        Object.keys(totals.totalByPayer).map(payer => (
+                                            <div key={payer} className="flex justify-between text-sm">
+                                                <span className="text-gray-600">{payer}</span>
+                                                <span className="font-medium">{formatCurrency(totals.monthlyTotalByPayer[payer] || 0)}</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-gray-400">Nessuna spesa</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Add Expense Form */}
+                        <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm mb-6 sm:mb-8">
+                            <h2 className="text-lg font-medium text-gray-800 mb-4">Aggiungi Spesa</h2>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="sm:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-600 mb-2">Descrizione</label>
+                                    <input
+                                        type="text"
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-400 focus:outline-none transition text-base"
+                                        placeholder="es. Spesa supermercato"
+                                    />
+                                </div>
+                                
+                                <div className="sm:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-600 mb-2">Note</label>
+                                    <textarea
+                                        value={notes}
+                                        onChange={(e) => setNotes(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-400 focus:outline-none transition text-base resize-none"
+                                        placeholder="Note aggiuntive..."
+                                        rows="2"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-600 mb-2">Importo</label>
+                                    <div className="relative">
+                                        <Icon name="euro" className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                                        <input
+                                            type="number"
+                                            value={amount}
+                                            onChange={(e) => setAmount(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-400 focus:outline-none transition text-base"
+                                            placeholder="0.00"
+                                            step="0.01"
+                                            inputMode="decimal"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-600 mb-2">Data</label>
+                                    <div className="relative">
+                                        <Icon name="calendar" className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                                        <input
+                                            type="date"
+                                            value={date}
+                                            onChange={(e) => setDate(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-400 focus:outline-none transition text-base"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-600 mb-2">Chi ha pagato</label>
+                                    <div className="relative">
+                                        <Icon name="user" className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                                        {!showNewPayer ? (
+                                            <select
+                                                value={selectedPayer}
+                                                onChange={(e) => {
+                                                    if (e.target.value === 'new') {
+                                                        setShowNewPayer(true);
+                                                    } else {
+                                                        setSelectedPayer(e.target.value);
+                                                    }
+                                                }}
+                                                className="w-full pl-10 pr-10 py-3 rounded-xl border border-gray-200 focus:border-blue-400 focus:outline-none transition appearance-none text-base"
+                                            >
+                                                <option value="">Seleziona...</option>
+                                                {payers.map(p => (
+                                                    <option key={p} value={p}>{p}</option>
+                                                ))}
+                                                <option value="new">+ Aggiungi persona</option>
+                                            </select>
+                                        ) : (
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={newPayer}
+                                                    onChange={(e) => setNewPayer(e.target.value)}
+                                                    className="flex-1 pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-400 focus:outline-none transition text-base"
+                                                    placeholder="Nome"
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    onClick={handleAddPayer}
+                                                    className="px-3 sm:px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition text-sm"
+                                                >
+                                                    OK
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setShowNewPayer(false);
+                                                        setNewPayer('');
+                                                    }}
+                                                    className="px-3 sm:px-4 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition text-sm"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        )}
+                                        {!showNewPayer && (
+                                            <Icon name="chevron-down" className="absolute right-3 top-3.5 w-5 h-5 text-gray-400 pointer-events-none" />
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-600 mb-2">Categoria</label>
+                                    <div className="relative">
+                                        <Icon name="tag" className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                                        {!showNewCategory ? (
+                                            <select
+                                                value={selectedCategory}
+                                                onChange={(e) => {
+                                                    if (e.target.value === 'new') {
+                                                        setShowNewCategory(true);
+                                                    } else {
+                                                        setSelectedCategory(e.target.value);
+                                                    }
+                                                }}
+                                                className="w-full pl-10 pr-10 py-3 rounded-xl border border-gray-200 focus:border-blue-400 focus:outline-none transition appearance-none text-base"
+                                            >
+                                                <option value="">Seleziona...</option>
+                                                {categories.map(c => (
+                                                    <option key={c} value={c}>{c}</option>
+                                                ))}
+                                                <option value="new">+ Aggiungi categoria</option>
+                                            </select>
+                                        ) : (
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={newCategory}
+                                                    onChange={(e) => setNewCategory(e.target.value)}
+                                                    className="flex-1 pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-400 focus:outline-none transition text-base"
+                                                    placeholder="Categoria"
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    onClick={handleAddCategory}
+                                                    className="px-3 sm:px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition text-sm"
+                                                >
+                                                    OK
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setShowNewCategory(false);
+                                                        setNewCategory('');
+                                                    }}
+                                                    className="px-3 sm:px-4 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition text-sm"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        )}
+                                        {!showNewCategory && (
+                                            <Icon name="chevron-down" className="absolute right-3 top-3.5 w-5 h-5 text-gray-400 pointer-events-none" />
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                <div className="sm:col-span-2 lg:col-span-1 flex items-end">
+                                    <button
+                                        onClick={handleAddExpense}
+                                        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition font-medium text-base"
+                                    >
+                                        <Icon name="plus" className="w-5 h-5" />
+                                        Aggiungi Spesa
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Recent Expenses */}
+                        <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+                            <h2 className="text-lg font-medium text-gray-800 mb-4">Spese Recenti</h2>
+                            
+                            {expenses.length === 0 ? (
+                                <p className="text-center text-gray-400 py-8">Nessuna spesa registrata</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {expenses.slice().reverse().map(expense => (
+                                        <div key={expense.id} className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition">
+                                            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white flex items-center justify-center flex-shrink-0">
+                                                    <Icon name="tag" className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="font-medium text-gray-800 truncate">{expense.description}</p>
+                                                    {expense.notes && (
+                                                        <p className="text-xs text-gray-500 italic mt-0.5 truncate">{expense.notes}</p>
+                                                    )}
+                                                    <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 flex-wrap">
+                                                        <span>{formatDate(expense.date)}</span>
+                                                        <span className="hidden sm:inline">•</span>
+                                                        <span>{expense.payer}</span>
+                                                        <span className="hidden sm:inline">•</span>
+                                                        <span>{expense.category}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                                                <p className="text-base sm:text-lg font-semibold text-gray-800">{formatCurrency(expense.amount)}</p>
+                                                <button
+                                                    onClick={() => handleDeleteExpense(expense.id)}
+                                                    className="p-1.5 sm:p-2 text-gray-400 hover:text-red-500 transition"
+                                                >
+                                                    <Icon name="trash" className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Category Summary */}
+                        {Object.keys(totals.monthlyTotalByCategory).length > 0 ? (
+                            <div className="mt-6 sm:mt-8 bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h2 className="text-lg font-medium text-gray-800">Riepilogo per Categoria</h2>
+                                        <p className="text-xs text-gray-500">
+                                            {new Date(selectedMonth + '-01').toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
+                                        </p>
+                                    </div>
+                                    {selectedCategories.size > 0 && (
+                                        <div className="text-sm text-gray-600 text-right">
+                                            Totale selezionato: <span className="font-semibold text-gray-800 block">{formatCurrency(totals.selectedCategoriesTotal)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                                    {Object.entries(totals.monthlyTotalByCategory).map(([category, total]) => (
+                                        <div 
+                                            key={category} 
+                                            className={`bg-gray-50 rounded-xl p-4 cursor-pointer transition-all ${
+                                                selectedCategories.has(category) ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                                            }`}
+                                            onClick={() => toggleCategorySelection(category)}
+                                        >
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex-1">
+                                                    <p className="text-sm text-gray-600 mb-1">{category}</p>
+                                                    <p className="text-lg font-semibold text-gray-800">{formatCurrency(total)}</p>
+                                                </div>
+                                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                                                    selectedCategories.has(category) 
+                                                        ? 'bg-blue-500 border-blue-500' 
+                                                        : 'bg-white border-gray-300'
+                                                }`}>
+                                                    {selectedCategories.has(category) && (
+                                                        <Icon name="check" className="w-3 h-3 text-white" />
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : expenses.length > 0 && (
+                            <div className="mt-6 sm:mt-8 bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+                                <div className="text-center py-8">
+                                    <p className="text-gray-400">Nessuna spesa in {new Date(selectedMonth + '-01').toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // Render app
+        const root = createRoot(document.getElementById('root'));
+        root.render(<ExpenseTracker />);
+    </script>
+</body>
+</html>
